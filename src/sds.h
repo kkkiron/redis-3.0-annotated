@@ -28,6 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+//防伪式声明
 #ifndef __SDS_H
 #define __SDS_H
 
@@ -47,10 +48,10 @@ typedef char *sds;
 /*
  * 保存字符串对象的结构
  */
-struct sdshdr {
+struct sdshdr {     
     
     // buf 中已占用空间的长度
-    int len;
+    int len;    //
 
     // buf 中剩余可用空间的长度
     int free;
@@ -64,7 +65,20 @@ struct sdshdr {
  *
  * T = O(1)
  */
-static inline size_t sdslen(const sds s) {
+
+// static inline …… 语法：类似于宏定义
+static inline size_t sdslen(const sds s) {  
+    
+//指向结构体内字符串的首地址,减去两个int的偏移量，即得到指向结构体本身的指针，见下例
+/*
+    sdshdr s;
+    cout<<sizeof(struct sdshdr)<<endl;   //8
+    cout<<&s;        //0x7ffeefbff518
+    cout<<&s.len;   //0x7ffeefbff518，即结构体开始直接指向内部第一个变量
+    cout<<&s.free;  //0x7ffeefbff51c，间接得知int在此计算机内占4B
+    cout<<&s.buf;   //0x7ffeefbff520  同理
+ */
+
     struct sdshdr *sh = (void*)(s-(sizeof(struct sdshdr)));
     return sh->len;
 }
