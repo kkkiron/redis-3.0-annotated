@@ -715,7 +715,8 @@ struct sharedObjectsStruct {
  */
 typedef struct zskiplistNode {
 
-    // 成员对象
+    // 成员对象，指向什么类型？跳表只是负责根据score找出这个指针
+//   至于对象本身如何操作，概不负责
     robj *obj;
 
     // 分值
@@ -728,6 +729,7 @@ typedef struct zskiplistNode {
     struct zskiplistLevel {
 
         // 前进指针
+//       使用forward指针：zsl->level[i]->forward;
         struct zskiplistNode *forward;
 
         // 跨度
