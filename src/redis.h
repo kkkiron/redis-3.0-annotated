@@ -713,7 +713,7 @@ struct sharedObjectsStruct {
 /*
  * 跳跃表节点
  */
-typedef struct zskiplistNode {
+typedef struct zskiplistNode {//跳跃表节点
 
     // 成员对象，指向什么类型？跳表只是负责根据score找出这个指针
 //   至于对象本身如何操作，概不负责
