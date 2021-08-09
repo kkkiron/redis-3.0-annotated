@@ -532,6 +532,8 @@ intset *intsetRemove(intset *is, int64_t value, int *success) {
     // 当 value 的编码大小小于或等于集合的当前编码方式（说明 value 有可能存在于集合）
     // 并且 intsetSearch 的结果为真，那么执行删除
     // T = O(log N)
+    
+    //判断encoding大小这个操作真的是很妙啊
     if (valenc <= intrev32ifbe(is->encoding) && intsetSearch(is,value,&pos)) {
 
         // 取出集合当前的元素数量
