@@ -50,11 +50,18 @@
  *
  * T = O(1)
  */
+//相当于判断传入整数的大小，然后为该整数指定最合适的encoding
 static uint8_t _intsetValueEncoding(int64_t v) {
+    
+    //用32bit无法表达该数（上溢或下溢）
     if (v < INT32_MIN || v > INT32_MAX)
         return INTSET_ENC_INT64;
+    
+    //用16bit无法表达该数（上溢或下溢）
     else if (v < INT16_MIN || v > INT16_MAX)
         return INTSET_ENC_INT32;
+    
+    //用16bit可以表达该数
     else
         return INTSET_ENC_INT16;
 }
@@ -75,15 +82,20 @@ static int64_t _intsetGetEncoded(intset *is, int pos, uint8_t enc) {
     // 之后 member(&vEnc, ..., sizeof(vEnc)) 再从数组中拷贝出正确数量的字节
     // 如果有需要的话， memrevEncifbe(&vEnc) 会对拷贝出的字节进行大小端转换
     // 最后将值返回
-    if (enc == INTSET_ENC_INT64) {
+    if (enc == INTSET_ENC_INT64) {//enc == 8
+        //encoding为64位整数(实际上值一般是8，因为sizeof 返回值以字节为单位，64bit即8B)
+        
+        //memcpy（目的首地址，源首地址，地址长度）
         memcpy(&v64,((int64_t*)is->contents)+pos,sizeof(v64));
         memrev64ifbe(&v64);
         return v64;
-    } else if (enc == INTSET_ENC_INT32) {
+//         以下同理
+    } else if (enc == INTSET_ENC_INT32) {//enc == 4
         memcpy(&v32,((int32_t*)is->contents)+pos,sizeof(v32));
         memrev32ifbe(&v32);
         return v32;
-    } else {
+//         以下同理
+    } else {//enc == 2
         memcpy(&v16,((int16_t*)is->contents)+pos,sizeof(v16));
         memrev16ifbe(&v16);
         return v16;
