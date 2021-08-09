@@ -197,7 +197,9 @@
 /*
  * 字符串编码和整数编码的掩码
  */
+//                     1100 0000
 #define ZIP_STR_MASK 0xc0
+//                     0011 0000
 #define ZIP_INT_MASK 0x30
 
 /*
@@ -379,17 +381,26 @@ static unsigned int zipEncodeLength(unsigned char *p, unsigned char encoding, un
     if (ZIP_IS_STR(encoding)) {
         /* Although encoding is given it may not be set for strings,
          * so we determine it here using the raw length. */
+        //1字节编码
+                //  ＜ 64（2^7）
         if (rawlen <= 0x3f) {
             if (!p) return len;
             buf[0] = ZIP_STR_06B | rawlen;
-        } else if (rawlen <= 0x3fff) {
+        } 
+        //2字节编码  
+                //  ＜ 16384（2^14）
+        else if (rawlen <= 0x3fff) {
             len += 1;
             if (!p) return len;
             buf[0] = ZIP_STR_14B | ((rawlen >> 8) & 0x3f);
             buf[1] = rawlen & 0xff;
-        } else {
+        } 
+        //5字节编码 
+                //  >= 16384（2^14）
+        else {
             len += 4;
             if (!p) return len;
+            //10xx xxxx ...... 第一字节以10开头
             buf[0] = ZIP_STR_32B;
             buf[1] = (rawlen >> 24) & 0xff;
             buf[2] = (rawlen >> 16) & 0xff;
@@ -406,6 +417,7 @@ static unsigned int zipEncodeLength(unsigned char *p, unsigned char encoding, un
 
     /* Store this length at p */
     // 将编码后的长度写入 p 
+            //注意：全部均需使用memcpy修改p指针中的一段内存，修改长度依len而定
     memcpy(p,buf,len);
 
     // 返回编码所需的字节数
