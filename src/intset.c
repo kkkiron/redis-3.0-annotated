@@ -191,7 +191,8 @@ static intset *intsetResize(intset *is, uint32_t len) {
     // 所以如果新空间大小比原来的空间大小要大，
     // 那么数组原有的数据会被保留
     
-    //当intset需要扩容，且尚未确定添加进来的值是什么的时候，先进行“预处理”；
+    //当intset需要扩容，且尚未确定添加进来的值是什么的时候，先进行“预处理”
+    //主要配合update函数使用，也就是整数集连锁反应时的批处理动作
     //也可能是考虑内存碎片整理
     is = zrealloc(is,sizeof(intset)+size);
 
@@ -216,6 +217,9 @@ static intset *intsetResize(intset *is, uint32_t len) {
  * T = O(log N)
  */
 
+//先判断特殊情况（min，max，mid是否刚好命中？）
+//再进行二分查找
+//二分查找结束后，判断mid是否命中
 static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
     int min = 0, max = intrev32ifbe(is->length)-1, mid = -1;
     int64_t cur = -1;
@@ -276,6 +280,8 @@ static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
  *
  * T = O(N)
  */
+
+//Upgrade是“大手术”，引起连锁反应时才用
 static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     
     // 当前的编码方式
@@ -291,6 +297,8 @@ static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     // 注意，因为 value 的编码比集合原有的其他元素的编码都要大
     // 所以 value 要么大于集合中的所有元素，要么小于集合中的所有元素
     // 因此，value 只能添加到底层数组的最前端或最后端
+    
+    //只判断正负就可确定，这个逻辑很强（下溢必然是负数，上溢必然是正数）
     int prepend = value < 0 ? 1 : 0;
 
     /* First set new encoding and resize */
@@ -298,6 +306,8 @@ static intset *intsetUpgradeAndAdd(intset *is, int64_t value) {
     is->encoding = intrev32ifbe(newenc);
     // 根据新编码对集合（的底层数组）进行空间调整
     // T = O(N)
+    
+    //调用resize函数申请空间
     is = intsetResize(is,intrev32ifbe(is->length)+1);
 
     /* Upgrade back-to-front so we don't overwrite values.
@@ -403,6 +413,7 @@ static void intsetMoveTail(intset *is, uint32_t from, uint32_t to) {
 
     // 进行移动
     // T = O(N)
+    //注意事项：1 可能会覆盖数据（如数组的目标位置尚未使用，则无需担心）；2 要上层保证：从to位置开始，数组仍有足够位置保存移动过去的数据
     memmove(dst,src,bytes);
 }
 
