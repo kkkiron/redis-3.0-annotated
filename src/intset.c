@@ -86,8 +86,15 @@ static int64_t _intsetGetEncoded(intset *is, int pos, uint8_t enc) {
         //encoding为64位整数(实际上值一般是8，因为sizeof 返回值以字节为单位，64bit即8B)
         
         //memcpy（目的首地址，源首地址，地址长度）
+        //计算intset第pos个节点的首地址，并读出sizeof(v64)个字节，暂存在static变量v64中
         memcpy(&v64,((int64_t*)is->contents)+pos,sizeof(v64));
+        
+        // 宏函数，函数功能：如有必要，memrevEncifbe(&vEnc) 会对拷贝出的字节进行大小端转换
+        //字节大小端转换通过endianconv.h，endianconv.c实现
         memrev64ifbe(&v64);
+        
+        //static函数内部定义的变量，都是static变量，全局共享，且生命周期拉满，因此return 一个static int64_t 是合法，合理的
+        //这里int64_t v64始终担任着“暂存变量”的角色
         return v64;
 //         以下同理
     } else if (enc == INTSET_ENC_INT32) {//enc == 4
@@ -128,6 +135,8 @@ static void _intsetSet(intset *is, int pos, int64_t value) {
     // 接着 ((Enc_t*)is->contents)[pos] = value 将值赋给数组
     // 最后， ((Enc_t*)is->contents)+pos 定位到刚刚设置的新值上 
     // 如果有需要的话， memrevEncifbe 将对值进行大小端转换
+    
+    //查看当前intset的encoding类型，并根据类型将第pos个节点值修改为value
     if (encoding == INTSET_ENC_INT64) {
         ((int64_t*)is->contents)[pos] = value;
         memrev64ifbe(((int64_t*)is->contents)+pos);
@@ -152,6 +161,7 @@ intset *intsetNew(void) {
     intset *is = zmalloc(sizeof(intset));
 
     // 设置初始编码
+    //初始编码是16bit，随着元素不断添加，可能引起升级（只升不降，单向的）
     is->encoding = intrev32ifbe(INTSET_ENC_INT16);
 
     // 初始化元素数量
@@ -180,6 +190,9 @@ static intset *intsetResize(intset *is, uint32_t len) {
     // 注意这里使用的是 zrealloc ，
     // 所以如果新空间大小比原来的空间大小要大，
     // 那么数组原有的数据会被保留
+    
+    //当intset需要扩容，且尚未确定添加进来的值是什么的时候，先进行“预处理”；
+    //也可能是考虑内存碎片整理
     is = zrealloc(is,sizeof(intset)+size);
 
     return is;
@@ -202,6 +215,7 @@ static intset *intsetResize(intset *is, uint32_t len) {
  *
  * T = O(log N)
  */
+
 static uint8_t intsetSearch(intset *is, int64_t value, uint32_t *pos) {
     int min = 0, max = intrev32ifbe(is->length)-1, mid = -1;
     int64_t cur = -1;
